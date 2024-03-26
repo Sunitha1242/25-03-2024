@@ -1,0 +1,23 @@
+API Ports
+
+Employee-Service-port-8085
+Department-Service-port-8086
+Organization-Service-port-8087
+API-Gateway-port-9191
+Config-Server-port-
+Service-Registry-port-8761
+
+
+
+npx create-react-app my-app
+cd my-app
+npm start
+
+
+
+windows + shift+B  ----shutdown refresh
+windows + shift+s ----- screenshot
+windows + H--------voice type
+windows + alt +R----screen recording
+windows + x+u+u---direct shut down
+windows + v-------
