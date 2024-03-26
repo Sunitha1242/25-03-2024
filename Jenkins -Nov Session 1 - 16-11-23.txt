@@ -1,0 +1,42 @@
+Nov Session 1  - Jenkins - 16-11-23
+-------------------------------------
+
+1. Install jenkins
+2. open the cmd prompt on the jenkins directory - C:\Program Files (x86)\Jenkins>
+3. start/run jenkins - java -jar jenkins.war
+4. If incase 8080 port number is busy :    java -jar jenkins.war --httpPort=8084
+
+5. once  Jenkins is fully up and running - open it in the browser to work in the Jenkins Dashboard
+
+6. Q&A
+
+7. Big Picture
+8. Quick 5 mins Read -https://www.jenkins.io/doc/tutorials/
+
+
+
+-------------------------------------
+Jenkins KickOff Session - 7-11-23
+-----------------------------------
+1. Login to Next - degreed.com -> cg email id , Note: use private network if any issue use incognito mode
+2. If you are new to Next then when you will login for first , you need profile 
+3. Use Ping ID for login rather VPN
+4. Login to Pluralsight & Udemy -> NEVER USE EMAIL ID for login
+ALWAYS USE CAPGEMINI URL - capgemini.com
+
+Pluralsight -> https://app.pluralsight.com/id/signin/sso?redirectTo=
+
+Udemy -> https://capgemini.udemy.com/
+
+5. Now you have start your learning via this pathway -https://degreed.com/pathway/79xojoo39k?orgsso=capgemini
+
+6. Raise the request for Jenkins Installation -> Service central  (Java 8 or 11, Maven Home, GIT) -https://servicecentral.capgemini.com/sc
+
+7. Ask the IT Person to configure Enviornment Variable for JAVA_HOME, MAVEN_HOME while installing jenkins.
+-https://www.jenkins.io/doc/book/installing/
+
+8. Kindly complete Section 1 & Section 2 from learning pathway
+
+Join Teams Channel -https://teams.microsoft.com/l/team/19%3a4zQ2i_XYvgiOssbb-x30-0fi781BZqYfkV1G3iNj8wM1%40thread.tacv2/conversations?groupId=a2424334-d8d2-4e6b-8c4f-7e6cde30dd82&tenantId=76a2ae5a-9f00-4f6b-95ed-5d33d77c4d61
+
+---------------------------------------------
