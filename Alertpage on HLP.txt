@@ -1,0 +1,85 @@
+Whenever HLP ticket comes and asked for to check either data is coming or not then first we have to open or check in ORACLE(PEDW)(it contains only one day-previous day data)
+
+select * from chsi_usage.chsi_dly_usage_hdp_pre_stg
+select * from chsi_usage.chsi_dly_usage_hdp_pre_stg where equip_addr='F80C58BC2E90'------------to find host name and IP address in pedw table
+
+
+select rdc_rec_creation_dt from chsi_usage.chsi_dly_usage_hdp_pre_stg group by Rdc_rec_creation_dt
+
+select * from chsi_usage.chsi_dly_usage_hdp_pre_stg where CMTS_HOST_NM LIKE 'MACPGACV3WBZZ-HOLTOLMX04%' Order by 1
+
+
+If we find data in oracle then we can simply close the hlp saying data is seen.
+
+=========================================================================================
+
+These queries are used for checking date in Hive table
+this is the next step we have to follow when we don't see data in ORACLE dly table.
+
+First check in Daily , Hourly and 15 minutes order using the available data like Mac Address, OLM/ONT
+
+We need to find out which server and which IP Address
+
+
+[9:45 PM] Rajendran, Gopinath (CCI-Atlanta)
+CHSI_USAGE.CHSI_HRLY_USAGE – Contains all the data usage type hourly level dataCHSI_USAGE.CHSI_HRLY_NON_DATA_USAGE – Contains all the non-data usage type hourly level dataCHSI_USAGE.CHSI_ERR_DTL – Contains all the error data (determined by the err type) at the hourly level
+
+[10:13 PM] Rajendran, Gopinath (CCI-Atlanta)
+--HOURLY QUERIES
+--THIS IS WITH MAC; ONLY OLT/OLM
+select refinery_nm,cmts_host_nm,cm_mac_addr,local_rec_creation_tm, SUM(tot_up_svc_octets_pass) as upstrm_usages, SUM(tot_dn_svc_octets_pass) as dnstrm_usages, ROUND((SUM(tot_up_svc_octets_pass + tot_dn_svc_octets_pass)/(1024*1024*1024)),2) as tot_usages_in_gb from chsi_usage.chsi_hrly_usage where to_date(dt)>='2022-12-05' and dt<= '2022-12-06' and  to_date(local_rec_creation_tm)='2022-12-05' and cmts_host_nm LIKE 'MACPGACV3WBZZ-HOLTOLMX04%' and cm_mac_addr='84D3435CD4F0' and refinery_nm = 'PONE' group by refinery_nm,cmts_host_nm,cm_mac_addr, local_rec_creation_tm order by refinery_nm, local_rec_creation_tm;
+ 
+--THIS IS WITHOUT MAC
+select refinery_nm,cmts_host_nm,local_rec_creation_tm, SUM(tot_up_svc_octets_pass) as upstrm_usages, SUM(tot_dn_svc_octets_pass) as dnstrm_usages, ROUND((SUM(tot_up_svc_octets_pass + tot_dn_svc_octets_pass)/(1024*1024*1024)),2) as tot_usages_in_gb from chsi_usage.chsi_hrly_usage where to_date(dt)>='2022-12-05' and dt<= '2022-12-06' and  to_date(local_rec_creation_tm)='2022-12-05' and cmts_host_nm LIKE 'MACPGACV3WBZZ-HOLTOLMX04%' and refinery_nm = 'PONE' group by refinery_nm,cmts_host_nm, local_rec_creation_tm order by refinery_nm, local_rec_creation_tm;
+
+[10:16 PM] Rajendran, Gopinath (CCI-Atlanta)
+--DAILY QUERY WITH MAC ADDR
+select dt, refinery_nm, cmts_host_nm, equip_addr, svc_class_nm, cmts_ipv4_addr, SUM(tot_up_strm_dly_usage) as upstrm_usages,
+SUM(tot_dn_strm_dly_usage) as dnstrm_usages,SUM(tot_up_strm_dly_usage+tot_dn_strm_dly_usage) as tot_usage_in_bytes,
+round(SUM(tot_up_strm_dly_usage+tot_dn_strm_dly_usage)/(1024*1024*1024),2) as Daily_usages_in_gb
+from chsi_usage.chsi_dly_usage_hdp_pre_stg where dt='2022-12-05' and
+equip_addr ='84D3435CD4F0' and cmts_host_nm like 'MACPGACV3WBZZ-HOLTOLMX04%'
+group by dt, refinery_nm, cmts_host_nm, equip_addr, svc_class_nm, cmts_ipv4_addr
+order by dt, refinery_nm, cmts_host_nm, equip_addr, cmts_ipv4_addr;
+ 
+--DAILY QUERY WITHOUT MAC ADDR
+select dt,refinery_nm,cmts_host_nm,cmts_ipv4_addr, SUM(tot_up_strm_dly_usage) as upstrm_usages,
+SUM(tot_dn_strm_dly_usage) as dnstrm_usages,SUM(tot_up_strm_dly_usage+tot_dn_strm_dly_usage) as tot_usage_in_bytes,
+round(SUM(tot_up_strm_dly_usage+tot_dn_strm_dly_usage)/(1024*1024*1024),2) as Daily_usages_in_gb
+from chsi_usage.chsi_dly_usage_hdp_pre_stg where dt='2022-12-05'  and cmts_host_nm like 'MACPGACV3WBZZ-HOLTOLMX04%'
+group by dt,refinery_nm,cmts_host_nm,cmts_ipv4_addr
+order by dt,refinery_nm,cmts_host_nm,cmts_ipv4_addr;
+
+--15minutes table
+
+select region,fromtime,cmtshostname,cmtsip,cmmacaddr,usscn,usoctets,dsscn,dsoctets from chsi_usage.ipdr_15mins where to_date(dt)>='2022-12-05' and to_date(dt)<= '2022-12-06' and  fromTime >= '2022-12-05 20:00:00' and fromTime < '2022-12-05 21:00:00' and cmtshostname like 'MACPGACV3WBZZ-HOLTOLMX04%' and cmmacaddr='84D3435CD4F0' and region='PON' LIMIT 5;
+
+
+==========================================================================
+We are seeing data in hive table now. Hence we are closing the HLP ticket.Please let us know if you have any issues.
+===================================================================================
+If suppose data is not there in a daily table then we have to go check for service classes(PODS table)-
+select svc_class_nm,usage_type_desc,Usage_type_cd,Reject_flg from User_reference.Chsi_svc_class_usage_type_xref
+
+any usage type is  Data then it will move into usage hourly table
+any usage type is  other than Data then it will move into non usage hourly table
+
+reject flag Y means do not send for rating eventhough the data usage is 'D' type. 
+-
+First check wheteher Raw data is coming or not by using following commands.
+If it is coming then the data will be stored in Hive table then check in hive for data according to your dates otherwise data won't store in Hive.
+First enter into the server 
+samis folder
+then date
+enter below command using that particular mac address   and IP address
+
+/opt/incognito/ipdr-tool/bin/ipdrtool csv -m    B0DAF95BAED9   100.122.126.43_samis_20221109*.ipdr
+
+By following this command will get Service class name and some other fields also 
+
+we need to check for CMTS name,Service class amd Mac address ---all three must be there then only the data will proceed to 15 minutes table.ServiceOctetValue shouldn't be zero
+
+
+=======================================================================================
+
+

@@ -1,0 +1,365 @@
+ssh c35557@p1c35557%corp@10.220.5.14@catl0plas00131
+
+WE HAVE TO CHECK  FOR DATA IN DEVICES IN PRIMARY SERVER AND SECONDARY SERVER(IF NOT DATA PRESENT IN PRIMARY)
+*****************************************************************************************************************************************************
+IPDR ALERTS
+
+CMTS
+--------------------------
+Hi Ipdr Engineers,
+We are not getting data from the following device.Please look into it.
+===================================================================================
+
+ONT
+--------------------------------------
+"NOC,
+Please confirm if the below mentioned OLM device is isolated from the network. If the device is isolated, then create a service impacting UNO ticket and dispatch OPS to troubleshoot the issue. If the device is not isolated, please create a non-service impacting UNO ticket and assign it to the Corp - GIGABLAST - TSO Corp-GIGABLAST-TSO@cox.com team.
+
+Please update this email thread with the UNO ticket #."
+===========================================================================================
+ KAFKA CONNECTIVITY/IPDR Normalizer/ Message Timed out
+-----------------------------------------------------------
+step1:Enter into a particular server
+cat /var/log/incognito/ipdr-normalizer.log | grep timed | wc -l 
+cat /var/log/incognito/ipdr-normalizer.log | grep timed |head -2 
+cat /var/log/incognito/ipdr-normalizer.log | grep timed |tail -2 
+tail -F /var/log/incognito/ipdr-normalizer.log
+cat /var/log/incognito/ipdr-normalizer.log|grep 'new import file(s)'|tail -40
+====================================
+Hi Team,
+time out exist for less than a sec. It is auto recovered.
+
+The timeout existed for 1 second. Data is flowing as expected.
+
+This is false alert. Please ignore.
+==========================================
+
+SPLUNK HEAVY FORWARDERS::
+--------------------------------------------------------------------------------------------------
+step1:First enter into the particular server.no need of entering into semis and date.
+step2:enter  sudo /sbin/kingme.sh
+step3:enter  su - splunk
+step4:enter  /opt/splunkforwarder/bin/splunk restart
+===========================================================================================================
+
+NEW RELIC--IMP
+------------------------------------------------
+
+Process Check Alert
+
+Step1:We need to login to the particular server.
+Step2:Check Status by using the following commands(make sure the status of the Proxy, Collector and Normalizer processes are "Active" )
+
+systemctl status incognito-ipdr-proxy.service 
+systemctl status incognito-ipdr-collector.service 
+systemctl status incognito-ipdr-normalizer.service 
+
+Step3:Check if all three services are "active" if not then restart the services by using the commands.
+Before restarting we must create a HLP ticket for which service is not running.
+
+Step4:First enter into the Root
+
+sudo kingme.sh
+Step5:start the service which one was not active and then again please check the status once it is active or not.
+
+TO RESTART THE SERVICES 
+
+systemctl restart incognito-ipdr-proxy.service  
+
+systemctl restart incognito-ipdr-collector.service  
+
+systemctl restart incognito-ipdr-normalizer.service  
+ 
+
+TO START THE SERVICES 
+
+systemctl start incognito-ipdr-proxy.service  
+
+systemctl start incognito-ipdr-collector.service  
+
+systemctl start incognito-ipdr-normalizer.service  
+
+
+  
+
+TO STOP THE SERVICES 
+
+systemctl stop incognito-ipdr-proxy.service  
+
+systemctl stop incognito-ipdr-collector.service  
+
+systemctl stop incognito-ipdr-normalizer.service 
+
+
+  
+
+systemctl restart incognito-ipdr-proxy.service && tail -F /var/log/incognito/ipdr-proxy.log 
+
+systemctl restart incognito-ipdr-collector.service && tail -F /var/log/incognito/ipdr-collector.log 
+
+systemctl restart incognito-ipdr-normalizer.service && tail -F /var/log/incognito/ipdr-normalizer.log 
+========================================================================================================
+Daily Check up Rekey Errors(dukebdpd4001) 
+-----------------------------------------------------------------
+ cat /hadoop_shared/tmp/dub/IPDRStream_est_ins3_rekey.log| grep '2022-11-01' | grep 'Error processing key' | wc -l
+ cat /hadoop_shared/tmp/dub/IPDRStream_est_ins3_rekey.log| grep '2022-10-26' | grep 'NullPointerException' | wc -l
+ cat /hadoop_shared/tmp/dub/IPDRStream_est_ins3_rekey.log| grep '2022-10-26' | grep 'WARN' | wc -l
+ cat /hadoop_shared/tmp/dub/IPDRStream_est_ins3_rekey.log| grep '2022-10-26' | grep 'ERROR' | wc -l
+
+=============================================================================================================
+DUB_15MINS_STREAMING_CONFLUENT         RUNNING	UNDEFINED
+DUB_15MINS_STREAMING                                FINISHED	FAILED
+DUB_HOURLY_STREAMING_CONFLUENT      RUNNING	UNDEFINED
+DUB_HOURLY_STREAMING                             RUNNING	UNDEFINED
+
+DUB_DAILY_EST_CONFLUENT                         FINISHED	FAILED
+DUB_DAILY_EST                                                FINISHED	SUCCEEDED
+DUB_DAILY_PST_CONFLUENT                         FINISHED	SUCCEEDED
+DUB_DAILY_PST                                                FINISHED	SUCCEEDED
+
+
+Spark Jobs
+-------------------------------------------------------------
+
+dvtcbddd4001.corp.cox.com    QA Kafka server
+
+sudo -u ipdrstreamssa -i
+
+ps -ef|grep est_ins1
+ps -ef|grep est_ins2
+ps -ef|grep pst_ins2
+
+
+https://bd-yarn.qa.cox.com/
+
+
+Above link is to check spark jobs
+=======================================================================================================
+Our team is --------------CORP - DSS - DATOPS CG
+===============================================================================
+Spark streaming Jobs:
+
+DUB_15MINS_STREAMING
+
+DUB_15MINS_STREAMING_CONFLUENT
+
+DUB_HOURLY_STREAMING
+
+DUB_HOURLY_STREAMING_CONFLUENT
+=================================================================================
+Badge Jobs:
+
+DUB_DAILY_EST_CONFLUENT                        
+DUB_DAILY_EST                                               
+DUB_DAILY_PST_CONFLUENT                        
+DUB_DAILY_PST 
+
+===============================================================================
+duk9 and duk10 are special servers as only proxy runs in it.
+
+=================================================================================
+HLP TICKET:
+First check wheteher Raw data is coming or not by using following commands.
+If it is coming then the data will be stored in Hive table then check in hive for data according to your dates otherwise data won't store in Hive.
+First enter into the server 
+samis folder
+then date
+enter below command using that particular mac address   and IP address
+
+/opt/incognito/ipdr-tool/bin/ipdrtool csv -m    B0DAF95BAED9            100.122.126.43_samis_20221109*.ipdr
+=============================================================================================================
+ssh c35557@dvtcbdqc101.corp.cox.com
+enter cox password
+enter "kinit"
+enter password "Welcome@123"
+enter "hive"
+enter use chsi_usage;
+enter show tables;
+(select and copy) chsi_dly_usage_hdp_pre_stg
+enter "desc chsi_dly_usage_hdp_pre_stg"
+==========================================================================
+Access message
+ Prinicipal : c35557@HDP_DEV.COX.COM
+
+                   c35557@HDP_QA.COX.COM
+
+                   c35557@HDP_PRD.COX.COM
+
+Password : s3cur1x
+===========================================================================================================
+Lower Server : DSS – IPDR – Disk Usage (App) - 85% 
+catl0plas10037 (/opt/app)' 'Lower Environment Monitoring for Forking -- Disk Utilization'
+-----------------------------------------------------------
+Enter into the particular server IP address 
+enter into Samis folder
+enter ll -lrth
+enter sudo kingme.sh
+enter     rm -rf "old datadate"(rm -rf 20221115)
+After deleting old data files (maybe 5)
+enter df -kh
+Check in the usage the percentage must be less than 80%
+=========================================================================================================
+heci03/catoplas00175---10.220.22.27                   Guardian server
+
+============================================================================================
+To check Daily rollups::
+
+Enter into "dukebdpd4001" server
+enter cd /hadoop_shared/logs/bddub
+enter "ll -lrth"
+
+we must check for all groups (grp1,grp2,grp3,grp4 jobs in -dub spark,hive and scoop )
+
+enter tail -f dub---------------success   ,,,36 files done
+======================================================================================================
+CCIATL-MISOracleSupport@cox.com
+hemang patel-----------------------------for mongodb issues
+=======================================================================================================
+Kafka Lag or through put Alert
+--------------------------------------------
+Enter into    "dukebdpd4001" production server to check log values in all regions like EST,CST,PST,MST.
+Enter  "sudo -u ipdrstreamssa -i"
+Enter  
+rekey mst 1 |sort -u
+rekey mst 2 |sort -u
+rekey est 1 |sort -u
+rekey est 2 |sort -u
+rekey est 3 |sort -u
+rekey cst 1 |sort -u
+rekey cst 2 |sort -u
+rekey pst 1 |sort -u
+rekey pst 2|sort -u
+daily mst 1 |sort -u
+daily mst 2 |sort -u
+do it rekey,hourly and daily for all regions est,cst,pst,mst.
+========================================================================================================================
+
+for Nokia GPON & XGSPON - Danny and then copy Raju & Barbara Murphy
+
+for Calix XGSPON - Srinivas Rajarapu & Barbara Murphy
+==========================================================================
+All UNO's at a time
+
+https://uet.corp.cox.com/arsys/forms/uet/UNO_Incidents/Standard/?cacheid=56fd4bd8---link
+
+UNO full data
+Advace search (in the bottom)
+'Queue+' ="CORP - DSS - DATOPS" OR 'Queue+' = "CORP - DSS - DATOPS CG"
+-------------------------------------------------------------------------------------------------------------------------------------------------
+
+Rekey errors 
+
+[p1c17439@dukebdpd4001 dub]$ cat /hadoop_shared/tmp/dub/IPDRStream_est_ins3_rekey.log| grep '2022-11-01' | grep 'Error processing key' | wc -l
+
+4721
+
+[p1c17439@dukebdpd4001 dub]$ cat /hadoop_shared/tmp/dub/IPDRStream_est_ins3_rekey.log| grep '2022-10-26' | grep 'NullPointerException' | wc -l
+
+4734
+
+[p1c17439@dukebdpd4001 dub]$ cat /hadoop_shared/tmp/dub/IPDRStream_est_ins3_rekey.log| grep '2022-10-26' | grep 'WARN' | wc -l
+
+4745
+
+[p1c17439@dukebdpd4001 dub]$ cat /hadoop_shared/tmp/dub/IPDRStream_est_ins3_rekey.log| grep '2022-10-26' | grep 'ERROR' | wc -l
+
+4748
+
+[p1c17439@dukebdpd4001 dub]$
+====================================================================================================
+
+#fileConfig('/home/nmasadm/guardianAutomation/logging_config.ini')
+    fileConfig('/home/p1c35557/GuardianAutomation_Test/logging_config.ini'
+
+
+We see the data in hive tables.Please check and let us know if you see any issues.We are closing the ticket.
+
+
+
+. setenv_newkafka qa
+ps -ef | grep pst_ins2
+kill -9 211609(change the process id)
+
+
+
+cd /hadoop_shared/tmp/confluent-dub/qa/(for checking log files)
+
+
+start_hourly_confluent_qa pst 2
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+cmd to check remaining file count
+while true; do echo "remaining files count is : `ll -lrth /ipdrhdbc_share/HBDC/OSS/|wc -l`";date ; sleep 10;done
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+to check logs
+tail -F /var/log/incognito/ipdr-normalizer.log-20221225
+tail -F /var/log/incognito/ipdr-collector.log-20221225
+tail -F /var/log/incognito/ipdr-proxy.log-20221225
+
+we have to check for current log
+cd /var/log/incognito/
+ll -lrth
+cat ipdr-collector.log
+tail -F /var/log/incognito/ipdr-collector.
+
+cd /etc/opt/incognito
+
+cat ipdr-collector.log | grep 'Jan 9' > /home/p1c17439/Logs.txt
+
+cp ipdr-collector.log /home/p1c35557/------------copy logs to home directory
+cd /home/p1c35557/
+ll -lrth
+chmod 777 ipdr-collector.log  ----------giving permission to write and read access
+------------------------------------------------------------------------------------------------------------------
+
+ll -lrth | grep '2022122513*'| wc -l
+
+--------------------------------------------------------------------------------------------
+
+
+crontab -l
+crontab -e
+
+select*FROM CHSI_DLY_USAGE_HDP_PRE_STG where svc_class_nm in ('PRODUCT-10M','CNCTASST') and EQUIP_ADDR='84D3435D3DD2';
+select  RDC_REC_CREATION_DT,RDC_GRP_ID,SVC_CLASS_NM,EQUIP_ADDR,CHSI_ERR_TYPE_KEY from CHSI_DLY_USAGE_STG where EQUIP_ADDR='84D3435D3DD2';
+
+
+
+Hi Jamuna,
+
+No problem. By running the MAC count at hourly might not give us the exact result because the data get split into DATA,
+ NON-DATA and to ERROR tables at the hourly level. So running distinct macs all
+ those three tables would not give us the correct result (because a same MAC could send DATA and NON-DATA usages).
+
+
+HLP000010954330
+HLP000010955036
+
+
+from nmasdam to our folder
+
+exit from namdam stay in root and then do
+
+cp /home/nmasadm/guardianAutomation/GuardianTaskAutomation_v3.3.py /home/p1c35557/GuardianAutomation_Test
+ cd /home/guardian
+
+
+ rpm -qa | grep incognito---incognito installation
+
+
+
+cd /etc/opt/incognito/ipdr-proxy 
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+          

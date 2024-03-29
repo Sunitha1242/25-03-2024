@@ -1,0 +1,1164 @@
+
+[p1c35557@catl0plas00175 GuardianAutomation_Test]$ cat GuardianTaskAutomation_v3.3_Test.py
+import requests
+import os
+import json
+import socket
+import sys
+import re
+import ast
+import smtplib
+import time
+import logging
+import paramiko
+import base64
+import commands
+import ConfigParser
+from logging.config import fileConfig
+from email.mime.text import MIMEText
+from subprocess import Popen, PIPE
+from multiprocessing import Pool
+from functools import partial
+import array as arr
+
+class Error(Exception):
+    pass
+
+class ExitWhenErrorException(Error):
+    pass
+
+def sendMailWhenError():
+    COMMASPACE = ', '
+    logger.info("In sendMailWhenError")
+    message = 'Error Occurred when processing files'
+    logger.debug(message)
+    msg = MIMEText(message)
+    #msg["From"] = "bddub@cox.com"
+    #recipient = ['sunitha.dr@cox.com', 'sidaraymallappa.koti@cox.com', 'rajasekhar.regula@cox.com']
+    recipient = ['rajasekhar.regula@cox.com', 'sidaraymallappa.koti@cox.com', 'rajasekhar.regula@cox.com']
+    msg["To"] = list(str(recipient).split(","))
+    msg["To"] = ','.join(recipient)
+    msg["Subject"] = "Guardian Task Done"
+    p = Popen(["/usr/sbin/sendmail", "-t", "-oi"], stdin=PIPE)
+    p.communicate(msg.as_string())
+    logger.info("sendMail Completed")
+
+
+#Below SendMail function is for all the markets including CALIX, NOKIA correct format .add / .del files
+def sendMail(file_list,file_dict, rejected_list):
+    str1 = ''
+    str2 = ''
+    part1 = ''
+    logger.info("In sendMail")
+    str1 = ','.join([str(elem) for elem in file_list])
+    logger.debug(str1)
+    str2 = ','.join([str(elem) for elem in rejected_list])
+    print(file_dict)
+    part2 = 'Files processed successfully: ' + str1 + '\nFiles not processed: ' + str2 + '\n\n'
+    for key,val in file_dict.items():
+        print(key,val)
+        part1 = part1 + '''
+        -----------------------------------------------------------------------
+%s
+%s
+Before processing %s CMTS count in config : %s
+After processing %s CMTS count in config : %s
+'''%(key, val[0], key, val[1], key, val[2])
+    part3 = '''\nThanks,
+IPDR Ops'''
+    message = part2 + part1 + part3
+    logger.debug(message)
+    msg = MIMEText(message)
+    #recipient = ['rajasekhar.regula@cox.com', 'sidaraymallappa.koti@cox.com', 'sunitha.dr@cox.com']
+    #msg["To"] = list(str(recipient).split(","))
+    #msg["To"] = ','.join(recipient)
+    #msg["From"] = "bddub@cox.com"
+    msg["To"] = 'sunitha.dr@cox.com'
+    #msg["To"] = "CCIATL-DSSIPDR@cox.com"
+    msg["Subject"] = "Guardian Task Done"
+    p = Popen(["/usr/sbin/sendmail", "-t", "-oi"], stdin=PIPE)
+    p.communicate(msg.as_string())
+    logger.info("sendMail Completed")
+
+
+#Below SendMail function is for Calix .add file
+def sendMail1(file_name, file_content, retflgcalix):
+        part1 = '''Calix .add file doesn't have IPv6 address. File has not been processed and it was moved to archive. Please contact IPDR Engineering Team for the right file.'''
+        part2 = '\n \nFile name: ' + str(file_name) + '\nFile description: ' + str(file_content)
+        part3 = '''\nThanks,
+IPDR Ops'''
+        message = part1 + part2 + part3
+        #logger.debug(message)
+        msg = MIMEText(message)
+        #msg["From"] = "bddub@cox.com"
+        msg["To"] = 'sunitha.dr@cox.com'
+        #msg["To"] = "CCIATL-DSSIPDR@cox.com"
+        msg["Subject"] = "Guardian Task - Calix add file without IPv6. Please contact IPDR Eng Team."
+        p = Popen(["/usr/sbin/sendmail", "-t", "-oi"], stdin=PIPE)
+        p.communicate(msg.as_string())
+        logger.info("sendMail Completed for Calix incorrect .add file")
+
+
+#Below SendMail function is for Nokia .add file
+def sendMail2(file_name, file_content, retflgnokia):
+    part1 = '''Nokia .add file doesn't have IPv6 address. File has not been processed and it was moved to archive. Please contact IPDR Engineering Team for the right file.'''
+    part2 = '\n \nFile name: ' + str(file_name) + '\nFile description: ' + str(file_content)
+    part3 = '''\nThanks,
+IPDR Ops'''
+    message = part1 + part2 + part3
+    logger.debug(message)
+    msg = MIMEText(message)
+    #msg["From"] = "bddub@cox.com"
+    msg["To"] = 'sunitha.dr@cox.com'
+    #msg["To"] = "CCIATL-DSSIPDR@cox.com"
+    msg["Subject"] = "Guardian Task - Nokia add file without IPv6. Please contact IPDR Eng Team."
+    p = Popen(["/usr/sbin/sendmail", "-t", "-oi"], stdin=PIPE)
+    p.communicate(msg.as_string())
+    logger.info("sendMail Completed for Nokia incorrect .add file")
+
+
+#Below SendMail function is for Calix .del file
+def sendMail3(file_name, file_content, retflgcalix):
+        part1 = '''Empty ipv6 & ipv4 address for Calix del file. Please contact IPDR Engineering Team for the right file.'''
+        part2 = '\n \nFile name: ' + str(file_name) + '\nFile description: ' + str(file_content)
+        part3 = '''\nThanks,
+IPDR Ops'''
+        message = part1 + part2 + part3
+        #logger.debug(message)
+        msg = MIMEText(message)
+        #msg["From"] = "bddub@cox.com"
+        msg["To"] = 'sunitha.dr@cox.com'
+        #msg["To"] = "CCIATL-DSSIPDR@cox.com"
+        msg["Subject"] = "Guardian Task - Calix del file without IPv6 & IPv4. Please contact IPDR Eng Team."
+        p = Popen(["/usr/sbin/sendmail", "-t", "-oi"], stdin=PIPE)
+        p.communicate(msg.as_string())
+        logger.info("sendMail Completed for Calix incorrect .del file")
+
+#Below SendMail function is for Nokia .del file
+def sendMail4(file_name, file_content, retflgnokia):
+        part1 = '''Empty ipv6 & ipv4 address for Nokia del file. Please contact IPDR Engineering Team for the right file.'''
+        part2 = '\n \nFile name: ' + str(file_name) + '\nFile description: ' + str(file_content)
+        part3 = '''\nThanks,
+IPDR Ops'''
+        message = part1 + part2 + part3
+        #logger.debug(message)
+        msg = MIMEText(message)
+        #msg["From"] = "bddub@cox.com"
+        msg["To"] = 'sunitha.dr@cox.com'
+        #msg["To"] = "CCIATL-DSSIPDR@cox.com"
+        msg["Subject"] = "Nokia del file without IPv6 & IPv4. Please contact IPDR Eng Team."
+        p = Popen(["/usr/sbin/sendmail", "-t", "-oi"], stdin=PIPE)
+        p.communicate(msg.as_string())
+        logger.info("sendMail Completed for Nokia incorrect .del file")
+
+#Below SendMail function is for Duplicate ip address found from the source
+def sendMail5(file_name, file_content, ip):
+        part1 = 'Duplicate IP address: ' + str(ip) +  ' found from the below add request file. Hence, not processed it into the IPDR.'
+        part2 = '\n \nFile name: ' + str(file_name) + '\nFile description: ' + str(file_content)
+        part3 = '''\nThanks,
+IPDR Ops'''
+        message = part1 + part2 + part3
+        #logger.debug(message)
+        msg = MIMEText(message)
+        #msg["From"] = "bddub@cox.com"
+        msg["To"] = 'sunitha.dr@cox.com'
+        #msg["To"] = "CCIATL-DSSIPDR@cox.com"
+        msg["Subject"] = "Guardian Task Done: Duplicate IP address found from the add request file."
+        p = Popen(["/usr/sbin/sendmail", "-t", "-oi"], stdin=PIPE)
+        p.communicate(msg.as_string())
+        logger.info("sendMail Completed for the duplicate IP address found")
+
+def sendMail6(rdcName, file_name, file_content, ip, portnum, portnumcnt):
+        part1 = '' + str(rdcName) + ' ' ' device IP ' + str(ip) + ' portnumber(' + str(portnum) + ') has reached the count 250. The portnumber count is: ' + str(portnumcnt) +  '. Please look into it.'
+        part2 = '\n \nFile name: ' + str(file_name) + '\nFile description: ' + str(file_content)
+        part3 = '''\nThanks,
+IPDR Ops'''
+        message = part1 + part2 + part3
+        #logger.debug(message)
+        msg = MIMEText(message)
+        #msg["From"] = "bddub@cox.com"
+        msg["To"] = 'sunitha.dr@cox.com'
+        #msg["To"] = "CCIATL-DSSIPDR@cox.com"
+        msg["Subject"] = "Guardian Task Done: Port number has reached 250 count. Please look into it."
+        p = Popen(["/usr/sbin/sendmail", "-t", "-oi"], stdin=PIPE)
+        p.communicate(msg.as_string())
+        logger.info("sendMail Completed for the case, port number crossed 250 count.")
+
+#Below SendMail function is for Calix Invalid Hostname
+def sendMail7(file_name, file_content, retflgcalix):
+        logger.info("In moveToArc")
+        logger.debug("filename: " + file_name)
+        worked_filename = file_name.strip() + '.worked'
+        logger.debug("worked_filename:" + worked_filename)
+        # print("../done/"+filename+".finished")
+        mv_file = os.popen("mv " + file_name.strip() + " " + worked_filename).read()
+        logger.debug("mv_file: " + mv_file)
+        done_filename = file_name.strip() + '.done'
+        f = open('../done/' + done_filename, "w+")
+        if re.search(".add", file_name) and retflgcalix is False:
+                f.write("1^Invalid Hostname, Not added to IPDR")
+        '''while True:
+                if os.path.exists('../done/'+filename.strip()+'.finished'):
+                        os.system('mv '+worked_filename.strip()+' /arc')
+                        break
+                time.sleep(60)'''
+        f.close()
+        os.system("mv  -f " + worked_filename + " ../arc")
+        logger.info("moveToArc Completed")
+
+        part1 = '''Calix .add file doesn't have valid hostname. File is not processed to the IPDR. Please contact the Calix team for the right file'''
+        #part2 = '''\n\nValid hostname at 5th and 6th characters should be - \'''' + statecode + ' \' '
+        part3 = '\n \nFile name: ' + str(file_name) + '\nFile description: ' + str(file_content)
+        part4 = '''\nThanks,
+IPDR Ops'''
+        message = part1 + part3 + part4
+        #logger.debug(message)
+        msg = MIMEText(message)
+        #msg["From"] = "bddub@cox.com"
+        msg["To"] = 'sunitha.dr@cox.com'
+        #msg["To"] = "CCIATL-DSSIPDR@cox.com"
+        msg["Subject"] = "Guardian Task - Calix add file without valid hostname."
+        p = Popen(["/usr/sbin/sendmail", "-t", "-oi"], stdin=PIPE)
+        p.communicate(msg.as_string())
+        logger.info("sendMail Completed for Calix incorrect .add file")
+
+#Below SendMail function is to send email communication to IPDR distro when Ipdr static user credentials not working
+def sendMail8(HostIP, file_name, file_content):
+        part1 = 'IPDR static user has the ' + str(HostIP) + ' server login issue. Not able to execute the reload "proxy and collector" services for the add file. Please reload the services manually. '
+        part2 = 'IPDR static user has the ' + str(HostIP) + ' server login issue. Not able to execute the restart "proxy and collector" services for the del file. Please restart the services manually. '
+        part3 = '\n \nFile name: ' + str(file_name) + '\nFile description: ' + str(file_content)
+        part4 = '''\nThanks,
+IPDR Ops'''
+        if re.search('.add', file_name) :
+            message = part1 + part3 + part4
+                #logger.debug(message)
+            msg = MIMEText(message)
+            #msg["From"] = "bddub@cox.com"
+            msg["To"] = 'rajasekhar.regula@cox.com'
+            #msg["To"] = "CCIATL-DSSIPDR@cox.com"
+            msg["Subject"] = "Guardian Task - IPDR static user login failed"
+            p = Popen(["/usr/sbin/sendmail", "-t", "-oi"], stdin=PIPE)
+            p.communicate(msg.as_string())
+            logger.info("SendMail completed for the static user login failure")
+        else:
+            message = part2 + part3 + part4
+            #logger.debug(message)
+            msg = MIMEText(message)
+            #msg["From"] = "bddub@cox.com"
+            msg["To"] = 'sunitha.dr@cox.com'
+            #msg["To"] = "CCIATL-DSSIPDR@cox.com"
+            msg["Subject"] = "Guardian Task - IPDR static user login failed"
+            p = Popen(["/usr/sbin/sendmail", "-t", "-oi"], stdin=PIPE)
+            p.communicate(msg.as_string())
+            logger.info("SendMail completed for the static user login failure")
+
+def ServerConnectReload(HostIP, file_name, file_content):  #This function is to reload the proxy and collector services for the add request
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    print(HostIP)
+    try:
+        client.connect(HostIP, username='ipdr', password='ipdrguardian')
+        print("Server connected successfully")
+        logger.info("Server has been connected successfully")
+        stdin, stdout, stderr = client.exec_command('sudo systemctl reload incognito-ipdr-proxy.service')
+        time.sleep(3)
+        stdin, stdout, stderr = client.exec_command('sudo systemctl reload incognito-ipdr-collector.service')
+        print("Server connection has been closed")
+        logger.info("Server has been closed successfully")
+        client.close()
+    except Exception as e:
+        print("[!] Cannot connect to the SSH Server")
+        print(e)
+        logger.error("Cannot connect to the SSH Server. ")
+        logger.info("IPDR static user login issue. Please reload the proxy and collector services manually. ")
+        sendMail8(HostIP, file_name, file_content)
+
+
+
+def ServerConnectRestart(HostIP, file_name, file_content):  #This function is to restart the proxy and collector services for the del request
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    print(HostIP)
+    try:
+        client.connect(HostIP, username='ipdr', password='ipdrguardian')
+        print("Server connected successfully")
+        logger.info("Server has been connected successfully")
+        stdin, stdout, stderr = client.exec_command('sudo systemctl restart incognito-ipdr-proxy.service')
+        time.sleep(3)
+        stdin, stdout, stderr = client.exec_command('sudo systemctl restart incognito-ipdr-collector.service')
+        print("Server connection has been closed")
+        logger.info("Server has been closed successfully")
+        client.close()
+    except Exception as e:
+        print("[!] Cannot connect to the SSH Server")
+        print(e)
+        logger.error("Cannot connect to the SSH Server. ")
+        logger.info("IPDR static user login issue. Please restart the proxy and collector services manually. ")
+        sendMail8(HostIP, file_name, file_content)
+
+
+
+#Below Archive function is for CALIX and for other HFC regions
+def moveToArc(filename, retflag, retflgcalix):
+    logger.info("In moveToArc")
+    logger.debug("filename: " + filename)
+    worked_filename = filename.strip() + '.worked'
+    logger.debug("worked_filename:" + worked_filename)
+    # print("../done/"+filename+".finished")
+    mv_file = os.popen("mv " + filename.strip() + " " + worked_filename).read()
+    logger.debug("mv_file: " + mv_file)
+    done_filename = filename.strip() + '.done'
+    f = open('../done/' + done_filename, "w+")
+    if re.search(".add", filename) and retflag is False:
+        f.write("1^Added to IPDR")
+    elif re.search(".add", filename) and retflag is True:
+        f.write("1^Already present in IPDR, no action taken")
+    elif re.search(".del", filename) and retflag is True:
+        f.write("1^Removed from IPDR")
+    elif re.search(".del", filename) and retflag is False:
+        f.write("1^Not present in IPDR, no action taken")
+    elif re.search(".add", filename) or re.search(".del", filename) and retflgcalix is True:
+        f.write("2^No ipv6 address found for Calix")
+    '''while True:
+        if os.path.exists('../done/'+filename.strip()+'.finished'):
+            os.system('mv '+worked_filename.strip()+' /arc')
+            break
+        time.sleep(60)'''
+    f.close()
+    os.system("mv  -f " + worked_filename + " ../arc")
+    logger.info("moveToArc Completed")
+
+'''def moveToArcCalix(filename):
+    logger.info("In moveToArcCalix")
+    logger.debug("filename: " + filename)
+    worked_filename = filename.strip() + '.worked'
+    logger.debug("worked_filename:" + worked_filename)
+    # print("../done/"+filename+".finished")
+    mv_file = os.popen("mv " + filename.strip() + " " + worked_filename).read()
+    logger.debug("mv_file: " + mv_file)
+    done_filename = filename.strip() + '.done'
+    f = open('../done/' + done_filename, "w+")
+    f.write("2^No ipv6 address found for Calix")'''
+
+              #Below Archive function is for NOKIA
+
+def moveToArc1(filename, retflag, retflgnokia):
+    logger.info("In moveToArc1")
+    logger.debug("filename: " + filename)
+    worked_filename = filename.strip() + '.worked'
+    logger.debug("worked_filename:" + worked_filename)
+    # print("../done/"+filename+".finished")
+    mv_file = os.popen("mv " + filename.strip() + " " + worked_filename).read()
+    logger.debug("mv_file: " + mv_file)
+    done_filename = filename.strip() + '.done'
+    f = open('../done/' + done_filename, "w+")
+    if re.search(".add", filename) and retflag is False:
+        f.write("1^Added to IPDR")
+    elif re.search(".add", filename) and retflag is True:
+        f.write("1^Already present in IPDR, no action taken")
+    elif re.search(".del", filename) and retflag is True:
+        f.write("1^Removed from IPDR")
+    elif re.search(".del", filename) and retflag is False:
+        f.write("1^Not present in IPDR, no action taken")
+    elif re.search(".add", filename) or re.search(".del", filename) and retflgnokia is True:
+        f.write("2^No ipv6 address found for Nokia")
+    '''while True:
+        if os.path.exists('../done/'+filename.strip()+'.finished'):
+            os.system('mv '+worked_filename.strip()+' /arc')
+            break
+        time.sleep(60)'''
+    f.close()
+    os.system("mv  -f " + worked_filename + " ../arc")
+    logger.info("moveToArc1 Completed")
+'''def moveToArcCalix(filename):
+    logger.info("In moveToArcCalix")
+    logger.debug("filename: " + filename)
+    worked_filename = filename.strip() + '.worked'
+    logger.debug("worked_filename:" + worked_filename)
+    # print("../done/"+filename+".finished")
+    mv_file = os.popen("mv " + filename.strip() + " " + worked_filename).read()
+    logger.debug("mv_file: " + mv_file)
+    done_filename = filename.strip() + '.done'
+    f = open('../done/' + done_filename, "w+")
+    f.write("2^No ipv6 address found for NOKIA")'''
+
+def getRequestProxy(rdcname):
+    logger.info("In getRequestProxy: "+str(rdcname))
+    logger.info('http://'+rdcname+':8080/GuardianTask/proxy')
+    try:
+        r_proxy = requests.get('http://'+rdcname+':8080/GuardianTask/proxy')
+        logger.debug("proxy from: "+str(rdcname)+" : "+str(r_proxy))
+        if r_proxy.status_code == 200 and r_proxy is not None:
+            return r_proxy
+        elif r_proxy is None:
+            logger.error("Null Response...Exiting!!!")
+            raise ExitWhenErrorException()
+        else:
+            # return r_proxy.status_code
+            logger.error("Error Occurred with status code:" + str(r_proxy.status_code) + " ...Exiting")
+            raise ExitWhenErrorException()
+    except requests.exceptions.RequestException as e:
+        # Whoops it wasn't a 200
+        logger.error("Error: " + str(e))
+        raise ExitWhenErrorException()
+    finally:
+        logger.info("getRequestProxy Completed: "+str(rdcname))
+
+def getRequestCollector(rdcname):
+    logger.info("In getRequestCollector: "+str(rdcname))
+    logger.info('http://'+rdcname+':8080/GuardianTask/collector')
+    try:
+        r_collector = requests.get('http://'+rdcname+':8080/GuardianTask/collector')
+        if r_collector.status_code == 200 and r_collector is not None:
+            return r_collector
+        elif r_collector is None:
+            logger.error("Null Response...Exiting!!!")
+            raise ExitWhenErrorException()
+        else:
+            logger.error("Erroe Occurred with status code:" + str(r_collector.status_code) + " ...Exiting")
+            raise ExitWhenErrorException()
+    except requests.exceptions.RequestException as e:
+        # Whoops it wasn't a 200
+        logger.error("Error: " + str(e))
+        raise ExitWhenErrorException()
+    finally:
+        logger.info("getRequestCollector Completed: "+str(rdcname))
+
+def putRequestProxy(rdcname, jstr):
+    logger.info("In putRequestProxy: "+str(rdcname))
+    logger.info('http://'+rdcname+':8080/GuardianTask/proxy')
+    try:
+        req = requests.put('http://'+rdcname+':8080/GuardianTask/proxy', json=jstr)
+        return req.status_code
+    except requests.exceptions.RequestException as e:
+        # Whoops it wasn't a 200
+        logger.error("Error: " + str(e))
+        raise ExitWhenErrorException()
+    finally:
+        logger.info("putRequestProxy Completed: "+str(rdcname))
+
+def putRequestCollector(rdcname, json_collector):
+    logger.info("In putRequestCollector: "+rdcname)
+    logger.info('http://'+rdcname+':8080/GuardianTask/collector')
+    try:
+        req_col = requests.put('http://'+rdcname+':8080/GuardianTask/collector', json=json_collector)
+        return req_col.status_code
+    except requests.exceptions.RequestException as e:
+        # Whoops it wasn't a 200
+        logger.error("Error: " + str(e))
+        raise ExitWhenErrorException()
+    finally:
+        logger.info("putRequestCollector Completed: "+str(rdcname))
+
+def guardianAdd(ip, rdcname):
+    logger.info("In guardianAdd: "+str(rdcname))
+    rmtaddr = ip + ':4737'
+    rmtaddr_list = []
+    addr = ''
+    addr1 = ''
+    lcladdr = []
+    sname = ''
+    colsname = ''
+    port = 4737
+    req = None
+    req_col = None
+    present_flg = True
+    host = ''
+    port_del = ''
+    res_collector = []
+    localaddr_list = []
+    cmts_cnt_aftr = None
+    cmts_cnt_befr = None
+    temp_list = []
+    nm1 = ''
+    nm2 = ''
+    addr2 = ''
+    col_host_list = []
+    first_cmts_list = []
+    second_cmts_list = []
+    port_list_col = []
+    portnumcount = ''
+    ####Adding Proxy####
+    r_proxy = getRequestProxy(rdcname)  # requests.get('http://10.220.3.167:8080/GuardianTask/proxy/' + rdcname)
+    jstr = r_proxy.json()
+    #logger.info("Before adding Proxy: "+str(jstr))
+    r_collector = getRequestCollector(
+                rdcname)  # requests.get('http://10.220.3.167:8080/GuardianTask/collector/' + rdcname)
+    json_collector = r_collector.json()
+    for i,cmts in enumerate(json_collector):
+        #print(i)
+        #print(cmts['cmts'])
+        if i ==0:
+            first_cmts_list = cmts['cmts']
+        else:
+            second_cmts_list = cmts['cmts']
+    cmts_list = first_cmts_list + second_cmts_list
+    for t in cmts_list:
+        port_list_col.append(t['host'])
+    print(port_list_col)
+    if r_proxy is not False:
+        for item in r_proxy.json():
+            col_len = len(item["sessions"]["collectors"])
+            rmtaddr_list.append(item["remote-addr"])
+            lcladdr.append(item["local-addr"])
+            sname = item["sessions"]["name"]
+            print(col_len,sname)
+            if col_len == 1:
+                print(item["sessions"]["collectors"][0])
+                colsname = item["sessions"]["collectors"][0]["collector"]
+                for ad in item["sessions"]["collectors"][0]["collector"]:
+                    addr = ad["addr"]
+            elif col_len == 2:
+                for i,j in enumerate(item["sessions"]["collectors"]):
+                    if i == 0:
+                        nm1 = j["name"]
+                        addr = j["collector"][1]["addr"]
+                    elif i == 1:
+                        nm2 = j["name"]
+                        addr2 = j["collector"][0]["addr"]
+        ####checking count before adding new CMTS#####
+        cmts_cnt_befr = len(rmtaddr_list)
+        logger.debug("Column length: "+str(col_len))
+        logger.debug("local-addr list: "+str(lcladdr))
+        logger.debug("Sname: " +str(sname))
+        for i in lcladdr:
+            #print(i)
+            localaddr_list.append(i[2:])
+        print("localaddr_list------------->.>>>>>>>"+str(localaddr_list))
+        port_col1 = 'localhost:'+str(port)
+        port_col2 = addr+':'+str(port)
+        print(port_col1)
+        print(port_col2)
+        for j in range(300):
+            if '*:'+str(port) in localaddr_list or 'localhost:'+str(port) in port_list_col or addr+':'+str(port) in port_list_col:
+                port = port + 1
+                print('*:'+str(port))
+                print('localhost:'+str(port))
+                print('if')
+                print('Port number count is:' +str(j))
+                portnumcount = j
+                continue
+            else:
+                print('*:'+str(port))
+                print('localhost:'+str(port))
+                print('else')
+                port = port
+                print('Port number count is:' +str(j))
+                portnumcount = j
+                break
+        localaddr = '*:'+str(port)
+        logger.debug("port to add: "+localaddr)
+        print("remote-addr List:")
+        print(rmtaddr_list)
+        print(rmtaddr)
+        for j in rmtaddr_list:
+            if rmtaddr == j:
+                logger.debug("Already exist in IPDR")
+                present_flg = True
+                break
+            else:
+                present_flg = False
+        if present_flg == False:
+            logger.info("Adding this one:"+str(ip))
+            if col_len == 1:
+                json_str = '{"remote-addr": "' + rmtaddr + '" ,"local-addr":"' + str(
+                localaddr) + '","sessions":{"name":"' + sname + '","collectors":[{"name":"MAP Service","collector":[{"addr":"127.0.0.1","priority":"1"},{"addr":"' + addr + '","priority":"2"}]}]}}'
+            elif col_len == 2:
+                json_str = '{"remote-addr": "' + rmtaddr + '","local-addr": "' + str(localaddr) + '","sessions": {"name": "' + sname + '","collectors": [{"name": "MAP Service","collector": [{"addr": "127.0.0.1","priority": "1"},{"addr": "' + addr + '","priority": "2"}]},{"name": "DEV/QA Proxy Forwarding","collector": [{"addr": "' + addr2 + '","priority": "1"}]}]}}'
+            logger.debug(json_str)
+            json_dict = ast.literal_eval(json_str)
+            jstr.append(json_dict)
+            #logger.debug("After adding Proxy : "+str(ip)+": "+str(jstr))
+            #logger.debug("Before adding Collector: "+str(json_collector))
+            for i, col in enumerate(json_collector):
+                if i == 0:
+                    host = 'localhost:' + str(port)
+                    json_str_col = '{ "host": "' + host + '" }'
+                    json_dict_col = ast.literal_eval(json_str_col)
+                    col['cmts'].append(json_dict_col)
+                elif i == 1:
+                    host = addr + ':' + str(port)
+                    json_str_col = '{ "host": "' + host + '" }'
+                    json_dict_col = ast.literal_eval(json_str_col)
+                    col['cmts'].append(json_dict_col)
+            logger.debug("After adding Collector: "+str(json_collector))
+            #print(jstr)
+            ####checking count after adding new CMTS#####
+            for val in jstr:
+                #print(val['remote-addr'])
+                temp_list.append(val['remote-addr'])
+            #print("temp_list")
+            #print(temp_list)
+            cmts_cnt_aftr = len(temp_list)
+            #print(cmts_cnt_aftr)
+            logger.info("Sending modified json to proxy")
+            print("jstr")
+            print(jstr)
+            req = putRequestProxy(rdcname,
+                                  jstr)  # requests.put('http://10.220.3.167:8080/GuardianTask/proxy/' + rdcname, json=jstr)
+            logger.info("Response code for proxy: "+str(req))
+            if req == 200:
+                logger.info("Sending modified json to collector")
+                req_col = putRequestCollector(rdcname,
+                                              json_collector)  # requests.put('http://10.220.3.167:8080/GuardianTask/collector/' + rdcname, json=json_collector)
+                logger.info("Response code for collector: "+str(req_col))
+                if req_col != 200:
+                    logger.error("Unsuccessful Collector PUT request: " + str(req) + ". Proxy is modified but not collector...Need some manual action...Exiting!!!")
+                    raise ExitWhenErrorException()
+            else:
+                logger.error("Unsuccessful Proxy PUT request: " + str(req) + ". Proxy and Collector both unmodified...Exiting!!!")
+                raise ExitWhenErrorException()
+        else:
+            cmts_cnt_aftr = cmts_cnt_befr
+            print('Duplicate Ip address found is: '+str(present_flg))
+            print(port)
+            return [present_flg, cmts_cnt_befr, cmts_cnt_aftr, port, portnumcount]
+        if req == 200 and req_col == 200:
+            return [present_flg, cmts_cnt_befr, cmts_cnt_aftr, port, portnumcount]
+        else:
+            logger.info("Proxy PUT Request Status Code: " + str(req))
+            logger.info("Collector PUT Request Status Code: " + str(req_col))
+            logger.error("Status Code problem Occur...Exiting!!!")
+            raise ExitWhenErrorException()
+    else:
+        logger.debug(r_proxy)
+
+def guardianDel(ip, rdcname):
+    rmtaddr_list = []
+    present_flg = False
+    cmts_cnt_aftr = None
+    cmts_cnt_befr = None
+    temp_list = []
+    logger.info("In guardianDel: "+str(rdcname))
+    r_proxy = getRequestProxy(rdcname)  # requests.get('http://10.220.3.167:8080/GuardianTask/proxy/'+rdcname)
+    if r_proxy is not False:
+        json_res_proxy = r_proxy.json()
+        src_str = ip+':4737'
+        logger.info("Before deleting proxy: "+str(json_res_proxy))
+        for prxy in json_res_proxy:
+            rmtaddr_list.append(prxy["remote-addr"])
+        for proxy in json_res_proxy:
+            #rmtaddr_list.append(proxy["remote-addr"])
+            #print(proxy['remote-addr'])
+            if str(src_str) == str(proxy['remote-addr']):
+                present_flg = True
+                port_del = proxy['local-addr']
+                print(proxy['remote-addr'])
+                print(src_str)
+                print('Match')
+                break
+            else:
+                present_flg = False
+                print(proxy['remote-addr'])
+                print(src_str)
+                print("Not present in IPDR, No action taken")
+        #print(ip)
+        logger.debug("rmtaddr_list"+str(rmtaddr_list))
+        ####checking count before deleting new CMTS#####
+        cmts_cnt_befr = len(rmtaddr_list)
+        logger.debug("Count before delete: "+str(cmts_cnt_befr))
+        print(present_flg)
+        if present_flg == True:
+            logger.info("Removing this one: "+str(ip))
+            ip_str = ip+':4737'
+            print(ip_str)
+            for i in json_res_proxy:
+                print(str(i["remote-addr"]))
+            res_proxy = [i for i in json_res_proxy if not (str(ip_str) == str(i["remote-addr"]))]
+            logger.debug("After delete proxy: "+str(res_proxy))
+            r_collector = getRequestCollector(
+                rdcname)  # requests.get('http://10.220.3.167:8080/GuardianTask/collector/'+rdcname)
+            json_res_collector = r_collector.json()
+            logger.info("port to be deleted: "+str(port_del))
+            deletedport = re.search('\d\d\d\d',str(port_del)).group()
+            print(deletedport)
+            for collector in json_res_collector:
+                logger.debug(collector)
+                for col in collector.values():
+                    #print("col: "+str(col))
+                    for j, pos in enumerate(col):
+                        #print("j: "+str(j))
+                        #print("pos: "+str(pos))
+                        pattern = re.compile(str(pos))
+                        print(pattern)
+                        if re.search(str(deletedport), str(pos)):
+                            logger.debug("Removed from config-collector")
+                            logger.debug(col)
+                            logger.debug(j)
+                            del col[j]
+                        else:
+                            #print("Not present in IPDR")
+                            pass
+            logger.info("After delete collector: "+str(json_res_collector))
+            ####checking count after deleting the CMTS#####
+            for val in res_proxy:
+                temp_list.append(val['remote-addr'])
+            #print(temp_list)
+            cmts_cnt_aftr = len(temp_list)
+            logger.debug("count after delete: "+str(cmts_cnt_aftr))
+            logger.info("Sending modified json to proxy")
+            req_proxy = putRequestProxy(rdcname,
+                                        res_proxy)  # requests.put('http://10.220.3.167:8080/GuardianTask/proxy/'+rdcname, json=res_proxy)
+            logger.info("Response code from proxy: "+str(req_proxy))
+            if req_proxy == 200:
+                logger.info("Sending modified json to collector")
+                req_col = putRequestCollector(rdcname,
+                                              json_res_collector)  # requests.put('http://10.220.3.167:8080/GuardianTask/collector/'+rdcname, json=json_res_collector)
+                logger.info("Response code from collector: "+str(req_col))
+                if req_col != 200:
+                    logger.error("Unsuccessful Collector PUT request: " + str(req) + ". Proxy is modified but not collector...Need some manual action...Exiting!!!")
+                    raise ExitWhenErrorException()
+            else:
+                logger.error("Unsuccessful Proxy PUT request: " + str(req) + ". Proxy and Collector both unmodified...Exiting!!!")
+                raise ExitWhenErrorException()
+        else:
+            cmts_cnt_aftr = cmts_cnt_befr
+            logger.info("present_flg after deletion: " + str(present_flg))
+            logger.debug("Final return flag: " + str(present_flg))
+            return [present_flg, cmts_cnt_befr, cmts_cnt_aftr]
+        if req_proxy == 200 and req_col == 200:
+            logger.debug("Final return flag: "+str(present_flg))
+            return [present_flg, cmts_cnt_befr, cmts_cnt_aftr]
+        else:
+            logger.info("Proxy PUT Request Status Code: " + str(req_proxy))
+            logger.info("Collector PUT Request Status Code: " + str(req_col))
+            logger.error("Status Code problem Occurred...Exiting!!!")
+            raise ExitWhenErrorException()
+    else:
+        logger.debug(r_proxy)
+
+def main():
+    global logger
+    primaryhost = ''
+    standbyhost = ''
+    HostIP = ''
+    file_list = []
+    add_list = []
+    del_list = []
+    rejected_list = []
+    wrong_rdc = False
+    wrong_vendor = False
+    totalFiles = []
+    rdcName = ''
+    hostprefix = ''
+    ip4 = ''
+    ip6 = ''
+    ip = ''
+    file_dict = {}
+    add_final_list = []
+    del_final_list = {}
+    isCalix = False
+    retflgcalix = False
+    isNokia = False
+    retflgnokia = False
+    invalid_state_code = False
+    ret_flag_prim = False
+    portnumcnt= ''
+    portnum= ''
+    #fileConfig('/home/nmasadm/guardianAutomation/logging_config.ini')
+    fileConfig('/home/p1c35557/GuardianAutomation_Test/logging_config.ini')
+    logger = logging.getLogger()
+    logger.info('---------------------------Starting main---------------------------')
+    regexIp = re.compile("^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$")
+    #os.chdir('/home/guardian/do')
+              #os.chdir('/home/guardian/QA/do')
+    os.chdir('/home/p1c35557/GuardianAutomation_Test/do')
+    file_cnt = os.popen('ls | wc -l').read()
+    #for files in sorted(os.listdir('/home/guardian/do')):
+              #for files in sorted(os.listdir('/home/guardian/QA/do')):
+    for files in sorted(os.listdir('/home/p1c35557/GuardianAutomation_Test/do')):
+        totalFiles.append(files)
+    logger.debug("Total files: "+str(totalFiles))
+    logger.debug(str(file_cnt)+" files found in /do to process")
+    if int(file_cnt) > 0:
+        for i in totalFiles:
+            f_out = ''
+            final_out = ''
+            rdcName = ''
+            ip = ''
+            hostprefix = ''
+            vendor_nm = ''
+            vendor_nm_del = ''
+            primaryhost = ''
+            standbyhost = ''
+            wrong_vendor = False
+            wrong_rdc = False
+            print(i)
+            #os.chdir('/home/guardian/do')
+                  #os.chdir('/home/guardian/QA/do')
+            os.chdir('/home/p1c35557/GuardianAutomation_Test/do')
+            #file_name = os.popen('ls -t| head -1').read()
+            file_name = str(i)
+            logger.info("File Name: " + file_name)
+            file_content = os.popen('cat ' + file_name).read()
+            logger.info("File Content---> " + file_content)
+            logger.info(len(file_content.split("^")))
+            if file_content != '' and re.search('.del', file_name):
+                f_out = file_content.split("^")[3:7]
+                final_out = ":".join(f_out)
+                rdcName = file_content.split("^")[0]
+                ip4 = file_content.split("^")[3]
+                ip6 = file_content.split("^")[8]
+                hostprefix = file_content.split("^")[4][:4]
+                vendor_nm_del = file_content.split("^")[9]
+                vendor_nm_del = vendor_nm_del.upper()
+            elif file_content != '' and re.search('.add', file_name):
+                f_out = file_content.split("^")[3:7]
+                final_out = ":".join(f_out)
+                rdcName = file_content.split("^")[0]
+                ip4 = file_content.split("^")[3]
+                ip6 = file_content.split("^")[18]
+                hostprefix = file_content.split("^")[4][:4]
+                #Modifications
+                #servername = file_content.split("^")[0]
+                hostname = file_content.split("^")[4]         #statecode = hostname[4:6]
+                vendor_nm = file_content.split("^")[7]
+                vendor_nm = vendor_nm.upper()
+            else:
+                logger.error("Either file content empty OR file name mismatch")
+
+            logger.debug('rdcName: ' + rdcName)
+            logger.debug("hostprefix: " + hostprefix)
+            logger.debug("IP4: " + ip4)
+            logger.debug("IP6: " + ip6)
+            logger.debug("vendor_nm " + vendor_nm)
+            logger.debug("vendor_nm_del " + vendor_nm_del)
+
+            parser = ConfigParser.ConfigParser()
+
+            #parser.read('/home/nmasadm/guardianAutomation/config.ini')
+
+            parser.read('/home/p1c35557/GuardianAutomation_Test/config.ini')
+            logger.debug("File read")
+            rdcList = parser.get("rdcList","rdc").split(",")
+            hostListPrimary = parser.get("hostListPrimary", "primaryhost").split(",")
+            hostListStandby = parser.get("hostListStandby", "standbyhost").split(",")
+            calixHostPrimary = str(parser.get("calixHostPrimary", "calixprimary"))
+            calixHostStandby = str(parser.get("calixHostStandby", "calixstandby"))
+            nokiaHostPrimary = str(parser.get("nokiaHostPrimary", "nokiaprimary"))
+            nokiaHostStandby = str(parser.get("nokiaHostStandby", "nokiastandby"))
+            prefixNorth = parser.get("prefixNorth","north").split(",")
+            prefixSouth = parser.get("prefixSouth","south").split(",")
+            #logger.debug("---------RDC---------")
+            #logger.debug(rdcList)
+            logger.debug("-----------------CALIXprimary------------------")
+            logger.debug(calixHostPrimary)
+            logger.debug("-----------------CALIXstandby------------------")
+            logger.debug(calixHostStandby)
+            logger.debug("-----------------NOKIA primary-----------------")
+            logger.debug(nokiaHostPrimary)
+            logger.debug("-----------------NOKIA standby-----------------")
+            logger.debug(nokiaHostStandby)
+            logger.debug("vendor_nm " + vendor_nm)
+            logger.debug("vendor_nm_del " + vendor_nm_del)
+            logger.debug("primaryhost "+ str(primaryhost))
+            logger.debug("standbyhost "+ str(standbyhost))
+            #for add file
+            #CALIX Logic
+
+            if str(vendor_nm).strip() == 'CALIX' and re.search('.add', file_name):
+                if ip6.strip() !='':
+                    logger.debug("Vendor is CALIX")
+                    isCalix = True
+                    retflgcalix = False
+                    ip = '['+str(ip6.strip())+']'
+                    primaryhost = calixHostPrimary
+                    standbyhost = calixHostStandby
+                    print(ip)
+                    #To check for valid hostname
+                    count = 0
+                    statecodes = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','AS','GU','MP','PR','VI']
+                    for i in statecodes:
+                        if(i == hostname[4:6]):
+                            count = 1
+                        if(count == 1):
+                            logger.debug("Valid hostname")
+                            break
+                    if(count == 0):
+                        logger.error("Invalid hostname")
+                        sendMail7(file_name, file_content, retflgcalix)
+                        invalid_state_code = True
+                        pass
+                    '''statecodes = parser.get("serverStateCodes","statecodes").split(",")
+                    for i, rdc in enumerate(rdcList):
+                        if rdcName == rdc:
+                            logger.debug("rdcName:" + rdcName)
+                            if(rdcName == 'Atlanta'):
+                                rdcName2 = file_content.split("^")[1]
+                                logger.debug("rdcName2 : "+ rdcName2)
+                                if(rdcName2 == 'macon'):
+                                    statecode = 'GA';
+                                    logger.debug("statecode: "+statecode)
+                                    logger.debug("File content statecode -> hostname[4:6] : "+ hostname[4:6])
+                                    if(statecode == hostname[4:6]):
+                                        logger.debug("Valid hostname")
+                                        break
+                                    else:
+                                        logger.error("Invalid hostname")
+                                        sendMail7(file_name, file_content, retflgcalix, statecode)
+                                        invalid_state_code = True
+                                        pass
+                                if(rdcName2 == 'pensacola/ft.waltonbeach' or rdcName2 == 'gainesville' ):
+                                    statecode = 'FL';
+                                    logger.debug("statecode: "+statecode)
+                                    logger.debug("File content statecode -> hostname[4:6] : "+ hostname[4:6])
+                                    if(statecode == hostname[4:6]):
+                                        logger.debug("Valid hostname")
+                                        break
+                                    else:
+                                        logger.error("Invalid hostname")
+                                        sendMail7(file_name, file_content, retflgcalix, statecode)
+                                        invalid_state_code = True
+                                        pass
+                            elif(rdcName == 'Kansas'):
+                                rdcName2 = file_content.split("^")[1]
+                                logger.debug("rdcName2 : "+ rdcName2)
+                                if(rdcName2 == 'kansas'):
+                                    statecode = 'KS';
+                                    logger.debug("statecode: "+statecode)
+                                    logger.debug("File content statecode -> hostname[4:6] : "+ hostname[4:6])
+                                    if(statecode == hostname[4:6]):
+                                        logger.debug("Valid hostname")
+                                        break
+                                    else:
+                                        logger.error("Invalid hostname")
+                                        sendMail7(file_name, file_content, retflgcalix, statecode)
+                                        invalid_state_code = True
+                                        pass
+                                if(rdcName2 == 'fayetteville'):
+                                    statecode = 'AR';
+                                    logger.debug("statecode: "+statecode)
+                                    logger.debug("File content statecode -> hostname[4:6] : "+ hostname[4:6])
+                                    if(statecode == hostname[4:6]):
+                                        logger.debug("Valid hostname")
+                                        break
+                                    else:
+                                        logger.error("Invalid hostname")
+                                        sendMail7(file_name, file_content, retflgcalix, statecode)
+                                        invalid_state_code = True
+                                        pass
+                            else:
+                                statecode = statecodes[i]
+                                logger.debug("statecode: "+statecode)
+                                logger.debug("File content statecode -> hostname[4:6] : "+ hostname[4:6])
+                                if(statecode == hostname[4:6]):
+                                    logger.debug("Valid hostname")
+                                    break
+                                else:
+                                    logger.error("Invalid hostname")
+                                    sendMail7(file_name, file_content, retflgcalix, statecode)
+                                    invalid_state_code = True
+                                    pass '''
+                else:
+                    logger.error("Empty ipv6 address for calix add")
+                    retflgcalix = True
+                    moveToArc(file_name,None,retflgcalix)
+                    sendMail1(file_name, file_content, retflgcalix)
+                    exit()
+            #NOKIA Logic
+            elif (str(vendor_nm).strip() == 'ALCATEL-LUCENT' or str(vendor_nm).strip() == 'NOKIA') and (re.search('.add', file_name)):
+                if ip6.strip() !='':                                       #ip6 or ip4 depending on requirement
+                    logger.debug("Vendor is NOKIA")
+                    isNokia = True
+                    retflgnokia = False
+                    ip = '['+str(ip6.strip())+']'
+                    primaryhost = nokiaHostPrimary
+                    standbyhost = nokiaHostStandby
+                    print(ip)
+                else:
+                    logger.error("Empty ipv6 address for nokia add")
+                    retflgnokia = True
+                    moveToArc1(file_name,None,retflgnokia)
+                    #add Email logic
+                    sendMail2(file_name, file_content, retflgnokia)
+                    exit()
+            #for del file
+            elif str(vendor_nm_del).strip() == 'CALIX' and re.search('.del', file_name):
+                if ip6.strip() !='':
+                    logger.debug("Vendor is CALIX")
+                    isCalix = True
+                    retflgcalix = False
+                    ip = '['+str(ip6.strip())+']'
+                    primaryhost = calixHostPrimary
+                    standbyhost = calixHostStandby
+                elif ip6.strip() == '' and ip4 != '':
+                    logger.debug("Vendor is CALIX")
+                    isCalix = True
+                    retflgcalix = False
+                    ip = ip4.strip()
+                    primaryhost = calixHostPrimary
+                    standbyhost = calixHostStandby
+                else:
+                    logger.error("Empty ipv6 & ipv4 address for calix del")
+                    retflgcalix = True
+                    moveToArc(file_name,None,retflgcalix)
+                    sendMail3(file_name, file_content, retflgcalix)
+                    exit()
+            elif (str(vendor_nm_del).strip() == 'ALCATEL-LUCENT' or str(vendor_nm_del).strip() == 'NOKIA') and (re.search('.del', file_name)):
+                if ip6.strip() !='':
+                    logger.debug("Vendor is NOKIA")
+                    isNokia = True
+                    retflgnokia = False
+                    ip = '['+str(ip6.strip())+']'
+                    primaryhost = nokiaHostPrimary
+                    standbyhost = nokiaHostStandby
+                elif ip6.strip() == '' and ip4 != '':
+                    logger.debug("Vendor is NOKIA")
+                    isNokia = True
+                    retflgnokia = False
+                    ip = ip4.strip()
+                    primaryhost = nokiaHostPrimary
+                    standbyhost = nokiaHostStandby
+                else:
+                    logger.error("Empty ipv6 & ipv4 address for nokia del")
+                    retflgnokia = True
+                    moveToArc1(file_name,None,retflgnokia)
+                    sendMail4(file_name, file_content, retflgnokia)
+                    exit()
+            else:
+                logger.debug("Vendor is neither CALIX nor NOKIA")
+                isCalix = False
+                isNokia = False
+                ip = ip4.strip()
+                for i, rdc in enumerate(rdcList):
+                    if rdcName == rdc and rdcName == 'Phoenix':
+                        if hostprefix in prefixNorth:
+                            # print("hostprefix found in North",hostList[i],i)
+                            primaryhost = hostListPrimary[i]
+                            standbyhost = hostListStandby[i]
+                            break
+                        elif hostprefix in prefixSouth:
+                            # print("hostprefix found in South",hostList[i+1],i)
+                            primaryhost = hostListPrimary[i + 1]
+                            standbyhost = hostListStandby[i + 1]
+                            break
+                        else:
+                           logger.error(
+                            "Unknown hostname prefix: " + hostprefix + ". Prefix not found for North and South")
+                            # exit(1)
+                    elif rdcName == rdc:
+                        primaryhost = hostListPrimary[i]
+                        standbyhost = hostListStandby[i]
+                        break
+                    elif i >= len(rdcList) - 1:
+                        logger.debug(len(rdcList))
+                        logger.error("Unknown RDC: " + rdcName)
+                        wrong_rdc = True
+            logger.debug("primaryhost= " + primaryhost)
+            logger.debug("standbyhost= " + standbyhost)
+            logger.debug("invalid_state_code Flag: " + str(invalid_state_code))
+            if re.search('.add', file_name) and wrong_rdc == False and wrong_vendor == False and invalid_state_code == False:
+                logger.debug('.add file found')
+                logger.debug(ip)
+                pool = Pool(2)
+                try:
+                    part = partial(guardianAdd, ip)
+                    add_ret_list = pool.map(part, [primaryhost])
+                    ret_flag_prim = add_ret_list[0][0]
+                    befr_cnt_add_prim = add_ret_list[0][1]
+                    aftr_cnt_add_prim = add_ret_list[0][2]
+                    portnum = add_ret_list[0][3]
+                    portnumcnt = add_ret_list[0][4]
+                    logger.debug(ret_flag_prim)
+                    if befr_cnt_add_prim != aftr_cnt_add_prim: #To skip the reload services for the duplicate IP address found scenario
+                        print('this print statement is to cover indentation erro')
+                        #ServerConnectReload(primaryhost, file_name, file_content)
+                    time.sleep(300)
+                    add_ret_list = pool.map(part, [standbyhost])
+                    ret_flag_stndby = add_ret_list[0][0]
+                    befr_cnt_add_stndby = add_ret_list[0][1]
+                    aftr_cnt_add_stndby = add_ret_list[0][2]
+                    if befr_cnt_add_stndby != aftr_cnt_add_stndby: #To skip the reload services for the duplicate IP address found scenario
+                        ServerConnectReload(standbyhost, file_name, file_content)
+                    #pool.close()
+                    ####Creating dict with file content, before and after count####
+                    add_final_list = [str(file_content), str(befr_cnt_add_prim), str(aftr_cnt_add_prim)]
+                    file_dict.update({file_name : add_final_list})
+                    if file_name not in add_list:
+                        add_list.append(file_name)
+                    #reload_pc(primaryhost)
+                    #reload_pc(standbyhost)
+                    moveToArc(file_name, ret_flag_prim, None)
+                except ExitWhenErrorException, e:
+                    if file_name not in rejected_list:
+                        rejected_list.append(file_name)
+                    logger.error('Exception Occurred...Sending mail and Exiting!!!')
+                    #exit(1)
+                finally:
+                    pool.close()
+                # p.map(guardianDel,args=([primaryhost, standbyhost],ip))
+                # ret_flag = guardianDel(rdcHost, ip)
+                # moveToArc(file_name, ret_flag[0])
+            elif re.search('.del', file_name) and wrong_rdc == False and wrong_vendor == False:
+                print('.del file found and IP matched')
+                pool = Pool(2)
+                try:
+                    part = partial(guardianDel, ip)
+                    del_ret_list = pool.map(part, [primaryhost])
+                    print("*&*^$^&&*&&("+str(del_ret_list))
+                    ret_flag_prim = del_ret_list[0][0]
+                    logger.debug("Del_ret_list is: ", del_ret_list)
+                    befr_cnt_del_prim = del_ret_list[0][1]
+                    aftr_cnt_del_prim = del_ret_list[0][2]
+                    if befr_cnt_del_prim != aftr_cnt_del_prim :#To skip the restart services for the scenario given IP address not found in IPDR
+                        time.sleep(120)
+                        ServerConnectRestart(primaryhost, file_name, file_content)
+                    time.sleep(300)
+                    del_ret_list = pool.map(part, [standbyhost])
+                    ret_flag_stndby = del_ret_list[0][0]
+                    befr_cnt_del_stndby = del_ret_list[0][1]
+                    aftr_cnt_del_stndby = del_ret_list[0][2]
+                    if befr_cnt_del_stndby != aftr_cnt_del_stndby :#To skip the restart services for the scenario given IP address not found in IPDR
+                        ServerConnectRestart(standbyhost, file_name, file_content)
+                    print(ret_flag_prim)
+                    #pool.close()
+                    logger.debug(ret_flag_prim)
+                    ####Creating dict with file content, before and after count####
+                    del_final_list = [str(file_content), str(befr_cnt_del_prim), str(aftr_cnt_del_prim)]
+                    print('del final list is : '+str(del_final_list))
+                    file_dict.update({file_name : del_final_list})
+                    if file_name not in del_list:
+                        del_list.append(file_name)
+                    #reload_pc(primaryhost)
+                    #reload_pc(standbyhost)
+                    print('delete file name is: ' + str(file_name))
+                    moveToArc(file_name, ret_flag_prim, None)
+                except ExitWhenErrorException, e:
+                    if file_name not in rejected_list:
+                        rejected_list.append(file_name)
+                    logger.error('Exception Occurred...Exiting!!!')
+                    #sendMail(file_list, rejected_list)
+                    #exit(1)
+                finally:
+                    pool.close()
+                pass
+                # p.map(guardianDel,args=([primaryhost, standbyhost],ip))
+                # ret_flag = guardianDel(rdcHost, ip)
+                #moveToArc(file_name, ret_flag[0])
+            else:
+                if file_name not in rejected_list:
+                    rejected_list.append(file_name)
+
+
+            file_list = add_list + del_list
+            print('the final list : ' + str(file_list))
+            logger.debug(file_list)
+
+            if re.search('.add', file_name) and ret_flag_prim == True:
+                print('Duplicate Ip address found after the Add Function process is: '+str(ret_flag_prim))
+                sendMail5(file_name, file_content, ip) #Email cofirmation for the duplicate IP address found
+            else:
+                pass
+            if re.search('.add', file_name) and portnumcnt >= 250 and invalid_state_code == False:
+                sendMail6(rdcName, file_name, file_content, ip, portnum, portnumcnt)
+            else:
+                pass
+        sendMail(file_list, file_dict, rejected_list) #Email confirmation for the regular add/del request devices
+    else:
+        logger.info("No file found in /do to process")
+        # sendMail(file_list, rejected_list)
+    logger.info('---------------------------main Completed---------------------------')
+
+
+if __name__ == '__main__':
+    main()

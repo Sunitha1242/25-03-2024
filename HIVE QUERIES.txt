@@ -1,0 +1,91 @@
+*
+select dt, refinery_nm, cmts_host_nm, equip_addr, cm_ipv4_addr, cm_ipv6_addr, cmts_ipv4_addr, SUM(tot_up_strm_dly_usage) as upstrm_usages,
+SUM(tot_dn_strm_dly_usage) as dnstrm_usages,SUM(tot_up_strm_dly_usage+tot_dn_strm_dly_usage) as tot_usage_in_bytes,
+round(SUM(tot_up_strm_dly_usage+tot_dn_strm_dly_usage)/(1024*1024*1024),2) as Daily_usages_in_gb
+from chsi_usage.chsi_dly_usage_hdp_pre_stg where dt between ('2022-08-10') and ('2022-11-29') and
+equip_addr in ('5437BB3A66EC') and cmts_host_nm like '%WRRBGAVU3VAEZ-WRBNOLMN04%'
+group by dt, refinery_nm, cmts_host_nm, equip_addr, cm_ipv4_addr, cm_ipv6_addr, cmts_ipv4_addr
+order by dt, refinery_nm, cmts_host_nm, equip_addr, cm_ipv4_addr, cm_ipv6_addr, cmts_ipv4_addr;
+
+select distinct dt, refinery_nm, SUM(tot_up_strm_dly_usage) as upstrm_usages,
+SUM(tot_dn_strm_dly_usage) as dnstrm_usages,SUM(tot_up_strm_dly_usage+tot_dn_strm_dly_usage) as tot_usage_in_bytes,
+round(SUM(tot_up_strm_dly_usage+tot_dn_strm_dly_usage)/(1024*1024*1024),2) as Daily_usages_in_gb
+from chsi_usage.chsi_dly_usage_hdp_pre_stg where dt between ('2022-11-24') and ('2022-11-24')
+group by dt, refinery_nm
+order by dt, refinery_nm;
+
+select distinct dt, refinery_nm, SUM(tot_up_strm_dly_usage) as upstrm_usages,
+SUM(tot_dn_strm_dly_usage) as dnstrm_usages,SUM(tot_up_strm_dly_usage+tot_dn_strm_dly_usage) as tot_usage_in_bytes,
+round(SUM(tot_up_strm_dly_usage+tot_dn_strm_dly_usage)/(1024*1024*1024),2) as Daily_usages_in_gb
+from chsi_usage.chsi_dly_usage_hdp_pre_stg where dt between ('2022-11-17') and ('2022-11-17')
+group by dt, refinery_nm
+order by dt, refinery_nm;
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+select dt, refinery_nm, cmts_host_nm, equip_addr, cmts_ipv4_addr, SUM(tot_up_strm_dly_usage) as upstrm_usages,
+SUM(tot_dn_strm_dly_usage) as dnstrm_usages,SUM(tot_up_strm_dly_usage+tot_dn_strm_dly_usage) as tot_usage_in_bytes,
+round(SUM(tot_up_strm_dly_usage+tot_dn_strm_dly_usage)/(1024*1024*1024),2) as Daily_usages_in_gb
+from chsi_usage.chsi_dly_usage_hdp_pre_stg where dt between ('2022-11-01') and ('2022-11-24') and
+equip_addr in ('F80C58BB952C','F80C58BB9610','F80C58BB9636','F80C58BB9FBC') and cmts_host_nm like '%WRRBGAXK3VALZ-WRBNOLMN15 %'
+group by dt, refinery_nm, cmts_host_nm, equip_addr, cmts_ipv4_addr
+order by dt, refinery_nm, cmts_host_nm, equip_addr, cmts_ipv4_addr;
+
+select distinct dt, region,cmtshostname,cmtsip.v6, cmtsip.v4 from chsi_usage.ipdr_15mins where to_date(dt)= '2021-12-12' and cmtshostname = 'SNSPGAXFOL1-CTECOLMX01.at.at.cox.net';
+
+select  region,cmtsip.v6, cmtsip.v4 from chsi_usage.ipdr_15mins where cmtshostname = 'MACPGACV3WBZZ-HOLTOLMX04';
+
+select distinct dt, region,cmtshostname,cmtsip.v6, cmtsip.v4 from chsi_usage.ipdr_15mins where to_date(dt)>= '2022-08-09' and to_date(dt)<='2022-08-18' and
+cmtshostname like '%MACPGACV3WBZZ-HOLTOLMX04%'
+order by cmtsip.v6 asc;
+
+
+----------------------------------------------------------------------------------
+
+select refinery_nm,equip_addr,svc_class_nm, dt, tot_up_strm_dly_usage, 
+tot_dn_strm_dly_usage from chsi_usage.chsi_dly_usage_hdp_pre_stg where 
+dt >= '2022-09-01' 
+and equip_addr = '84D3435CD856';
+
+
+gopi
+select distinct dt,local_rec_creation_tm, refinery_nm, SUM(tot_up_svc_octets_pass) as upstrm_usages,
+SUM(tot_dn_svc_octets_pass) as dnstrm_usages, ROUND(SUM(tot_up_svc_octets_pass+tot_dn_svc_octets_pass)/(1024*1024*1024),2) as hrly_usg_gb
+from chsi_usage.chsi_hrly_usage where dt>='2022-12-07' and dt<= '2022-12-08' and to_date(local_rec_creation_tm)='2022-12-07' and refinery_nm in ('PONM','PONP')
+group by dt,local_rec_creation_tm, refinery_nm
+order by local_rec_creation_tm;
+
+**************************************************************************************************************************************
+[9:45 PM] Rajendran, Gopinath (CCI-Atlanta)
+CHSI_USAGE.CHSI_HRLY_USAGE – Contains all the data usage type hourly level dataCHSI_USAGE.CHSI_HRLY_NON_DATA_USAGE – Contains all the non-data usage type hourly level dataCHSI_USAGE.CHSI_ERR_DTL – Contains all the error data (determined by the err type) at the hourly level
+
+[10:13 PM] Rajendran, Gopinath (CCI-Atlanta)
+--HOURLY QUERIES
+--THIS IS WITH MAC; ONLY OLT/OLM
+select refinery_nm,cmts_host_nm,cm_mac_addr,local_rec_creation_tm, SUM(tot_up_svc_octets_pass) as upstrm_usages, SUM(tot_dn_svc_octets_pass) as dnstrm_usages, ROUND((SUM(tot_up_svc_octets_pass + tot_dn_svc_octets_pass)/(1024*1024*1024)),2) as tot_usages_in_gb from chsi_usage.chsi_hrly_usage where to_date(dt)>='2022-12-05' and dt<= '2022-12-06' and  to_date(local_rec_creation_tm)='2022-12-05' and cmts_host_nm LIKE 'MACPGACV3WBZZ-HOLTOLMX04%' and cm_mac_addr='84D3435CD4F0' and refinery_nm = 'PONE' group by refinery_nm,cmts_host_nm,cm_mac_addr, local_rec_creation_tm order by refinery_nm, local_rec_creation_tm;
+ 
+--THIS IS WITHOUT MAC
+select refinery_nm,cmts_host_nm,local_rec_creation_tm, SUM(tot_up_svc_octets_pass) as upstrm_usages, SUM(tot_dn_svc_octets_pass) as dnstrm_usages, ROUND((SUM(tot_up_svc_octets_pass + tot_dn_svc_octets_pass)/(1024*1024*1024)),2) as tot_usages_in_gb from chsi_usage.chsi_hrly_usage where to_date(dt)>='2022-12-05' and dt<= '2022-12-06' and  to_date(local_rec_creation_tm)='2022-12-05' and cmts_host_nm LIKE 'MACPGACV3WBZZ-HOLTOLMX04%' and refinery_nm = 'PONE' group by refinery_nm,cmts_host_nm, local_rec_creation_tm order by refinery_nm, local_rec_creation_tm;
+
+[10:16 PM] Rajendran, Gopinath (CCI-Atlanta)
+--DAILY QUERY WITH MAC ADDR
+select dt, refinery_nm, cmts_host_nm, equip_addr, svc_class_nm, cmts_ipv4_addr, SUM(tot_up_strm_dly_usage) as upstrm_usages,
+SUM(tot_dn_strm_dly_usage) as dnstrm_usages,SUM(tot_up_strm_dly_usage+tot_dn_strm_dly_usage) as tot_usage_in_bytes,
+round(SUM(tot_up_strm_dly_usage+tot_dn_strm_dly_usage)/(1024*1024*1024),2) as Daily_usages_in_gb
+from chsi_usage.chsi_dly_usage_hdp_pre_stg where dt='2022-12-05' and
+equip_addr ='84D3435CD4F0' and cmts_host_nm like 'MACPGACV3WBZZ-HOLTOLMX04%'
+group by dt, refinery_nm, cmts_host_nm, equip_addr, svc_class_nm, cmts_ipv4_addr
+order by dt, refinery_nm, cmts_host_nm, equip_addr, cmts_ipv4_addr;
+ 
+--DAILY QUERY WITHOUT MAC ADDR
+select dt,refinery_nm,cmts_host_nm,cmts_ipv4_addr, SUM(tot_up_strm_dly_usage) as upstrm_usages,
+SUM(tot_dn_strm_dly_usage) as dnstrm_usages,SUM(tot_up_strm_dly_usage+tot_dn_strm_dly_usage) as tot_usage_in_bytes,
+round(SUM(tot_up_strm_dly_usage+tot_dn_strm_dly_usage)/(1024*1024*1024),2) as Daily_usages_in_gb
+from chsi_usage.chsi_dly_usage_hdp_pre_stg where dt='2022-12-05'  and cmts_host_nm like 'MACPGACV3WBZZ-HOLTOLMX04%'
+group by dt,refinery_nm,cmts_host_nm,cmts_ipv4_addr
+order by dt,refinery_nm,cmts_host_nm,cmts_ipv4_addr;
+
+[10:19 PM] Rajendran, Gopinath (CCI-Atlanta)
+select region,fromtime,cmtshostname,cmtsip,cmmacaddr,usscn,usoctets,dsscn,dsoctets from chsi_usage.ipdr_15mins where to_date(dt)>='2022-12-05' and to_date(dt)<= '2022-12-06' and  fromTime >= '2022-12-05 20:00:00' and fromTime < '2022-12-05 21:00:00' and cmtshostname like 'MACPGACV3WBZZ-HOLTOLMX04%' and cmmacaddr='84D3435CD4F0' and region='PON' LIMIT 5;
+
+**************************************************************************************************************************************************************************************
